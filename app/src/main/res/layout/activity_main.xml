@@ -1,18 +1,116 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <Button
+        android:id="@+id/button0"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:text="搜索设备"
+        tools:ignore="MissingConstraints"
+        android:backgroundTint="@color/design_default_color_secondary"
+        android:layout_alignParentTop="true"  />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <Button
+        android:id="@+id/button1"
+        android:layout_width="205dp"
+        android:layout_height="40dp"
+        android:text="SPP连接"
+        android:layout_below="@id/button0"
+        android:backgroundTint="#4CAF50"
+        tools:ignore="MissingConstraints" />
+
+    <Button
+        android:id="@+id/button2"
+        android:layout_width="205dp"
+        android:layout_height="40dp"
+        android:text="断开SPP连接"
+        android:layout_below="@id/button0"
+        android:layout_toRightOf="@id/button1"
+        android:backgroundTint="#00BCD4"
+        tools:ignore="MissingConstraints" />
+
+    <TextView
+        android:id="@+id/TextView0"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:text="SPP连接状态"
+        android:gravity="center"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/button1"
+        android:background="#17111111"
+        tools:ignore="MissingConstraints" />
+
+    <EditText
+        android:id="@+id/EditText0"
+        android:layout_width="300dp"
+        android:layout_height="50dp"
+        android:hint="请输入发送的数据"
+        android:selectAllOnFocus="true"
+        android:digits="0123456789abcdefABCDEF"
+        android:layout_below="@id/TextView0"
+        tools:ignore="MissingConstraints" />
+
+    <Button
+        android:id="@+id/button3"
+        android:layout_width="110dp"
+        android:layout_height="50dp"
+        android:text="发送数据"
+        android:layout_below="@id/TextView0"
+        android:layout_toRightOf="@id/EditText0"
+        android:backgroundTint="@color/design_default_color_secondary"
+        tools:ignore="MissingConstraints" />
+
+    <TextView
+        android:id="@+id/TextView1"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:text="接收数据"
+        android:layout_below="@id/EditText0"
+        android:background="#17111111"
+        android:gravity="center"
+        android:layout_centerHorizontal="true"
+        tools:ignore="MissingConstraints" />
+
+    <TextView
+        android:id="@+id/TextView2"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text=""
+        android:layout_below="@id/TextView1"
+        android:gravity="center"
+        android:layout_centerHorizontal="true"
+        tools:ignore="MissingConstraints" />
+
+    <Button android:id="@+id/button4"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:text="清除数据"
+        android:layout_below="@id/TextView2"
+        android:backgroundTint="@color/design_default_color_secondary"
+        tools:ignore="MissingConstraints" />
+
+    <TextView
+        android:id="@+id/TextView3"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:text="蓝牙列表"
+        android:layout_below="@id/button4"
+        android:gravity="center"
+        android:layout_centerHorizontal="true"
+        android:background="#00BCD4"
+        tools:ignore="MissingConstraints" />
+
+    <ListView
+        android:id="@+id/ListView0"
+        android:layout_width="match_parent"
+        android:layout_height="360dp"
+        android:layout_below="@id/TextView3"
+        android:background="#CDDC39"
+        tools:ignore="MissingConstraints" />
+
+</RelativeLayout>
