@@ -7,6 +7,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -82,7 +83,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             },5000);
         }
-        
+        if (!blueToothController.getBlueToothStatus())
+        {
+            blueToothController.turnOnBlueTooth(1);
+        }
     }
     //重写button点击事件
     class MyClickListener implements View.OnClickListener{
@@ -105,6 +109,21 @@ public class MainActivity extends AppCompatActivity {
             }
             else{
                 return false;
+            }
+        }
+        public boolean getBlueToothStatus(){//获取蓝牙状态
+            // 断言,为了避免mAdapter为null导致return出错
+            assert (mAdapter != null);
+            // 蓝牙状态
+            return mAdapter.isEnabled();
+        }
+        //打开蓝牙
+        public void turnOnBlueTooth( int requestCode){
+            try{
+                Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+                startActivityForResult(intent, requestCode);
+            }catch (SecurityException e) {
+                e.printStackTrace();
             }
         }
     }
