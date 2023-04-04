@@ -1,5 +1,8 @@
 package com.example.spp2;
 
+import static android.bluetooth.BluetoothDevice.BOND_BONDING;
+import static android.bluetooth.BluetoothDevice.BOND_NONE;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -7,13 +10,19 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -26,6 +35,10 @@ public class MainActivity extends AppCompatActivity {
     BlueToothController blueToothController = new BlueToothController();
     public ArrayList<String> requestList = new ArrayList<>();
     public static MainActivity instance = null;
+    public ArrayList<String> arrayList = new ArrayList<>();
+    public ArrayList<String> deviceName = new ArrayList<>();
+    private IntentFilter foundFilter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+    public ArrayAdapter adapter1 ;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -87,12 +100,25 @@ public class MainActivity extends AppCompatActivity {
         {
             blueToothController.turnOnBlueTooth(1);
         }
+        adapter1 = new ArrayAdapter(instance, R.layout.bluetooth_list_item, deviceName);//数组适配器
+        //注册广播和过滤器
+        foundFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        foundFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        registerReceiver(bluetoothReceiver, foundFilter);
+        listView.setAdapter(adapter1);
     }
     //重写button点击事件
     class MyClickListener implements View.OnClickListener{
         @Override
         public void onClick(View v) {
-
+            switch (v.getId())
+            {
+                case R.id.button0:
+                    arrayList.clear();
+                    deviceName.clear();
+                    blueToothController.findDevice();
+                    break;
+            }
         }
     }
     //定义一个蓝牙控制器类
@@ -122,6 +148,15 @@ public class MainActivity extends AppCompatActivity {
             try{
                 Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
                 startActivityForResult(intent, requestCode);
+            }catch (SecurityException e) {
+                e.printStackTrace();
+            }
+        }
+        public void findDevice(){
+            assert(mAdapter!=null);
+            Log.d("btController","finddevice findDevice");
+            try{
+                    mAdapter.startDiscovery();
             }catch (SecurityException e) {
                 e.printStackTrace();
             }
@@ -189,4 +224,49 @@ public class MainActivity extends AppCompatActivity {
         }
         return true;
     }
+    private final BroadcastReceiver bluetoothReceiver = new BroadcastReceiver()
+    {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();//Intent要完成的动作
+            if (BluetoothDevice.ACTION_FOUND.equals(action))//如果要完成的动作是发现设备操作
+            {
+                String s;
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                /*
+                * 系统发现新的蓝牙设备了之后，会通过广播把这个设备的信息发送出来。所以我们要通过截获 Action 为BluetoothDevice.ACTION_FOUND的 Intent，并得到设备信息
+                * */
+                try{
+                    if(device.getBondState()==BOND_NONE)
+                    {
+                        s = "Name:" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State：未配对" + "\n";
+                    }
+                    else if(device.getBondState()==BOND_BONDING)
+                    {
+                        s = "Name:" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State：配对中" + "\n";
+                    }
+                    else
+                    {
+                        s = "Name:" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State：已配对" + "\n";
+                    }
+                    if(!deviceName.contains(s))
+                    {
+                        deviceName.add(s);
+                        arrayList.add(device.getAddress());
+                        adapter1.notifyDataSetChanged();
+                    }
+                }catch (SecurityException e) {
+                    e.printStackTrace();
+                }
+
+            }
+            else if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action))//搜索完成
+            {
+                Toast.makeText(getApplicationContext(), "搜索完成", Toast.LENGTH_SHORT).show();
+                unregisterReceiver(this);
+            }else if(BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)){
+                Toast.makeText(getApplicationContext(), "开始搜索", Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
 }
