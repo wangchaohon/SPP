@@ -1,5 +1,6 @@
 package com.example.spp2;
 
+import static android.bluetooth.BluetoothDevice.BOND_BONDED;
 import static android.bluetooth.BluetoothDevice.BOND_BONDING;
 import static android.bluetooth.BluetoothDevice.BOND_NONE;
 
@@ -25,8 +26,11 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimerTask;
@@ -64,7 +68,44 @@ public class MainActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
+                CharSequence content = ((TextView) view).getText();
+                String con = content.toString();
+                Log.e("setOnItemClickListener","con:"+content.toString());
+                String[] conArray = con.split("\n");
+                Log.e("setOnItemClickListener","conArray[0]:"+conArray[0]+"conArray[1]"+conArray[1]+"conArray[2]"+conArray[2]);
+                String rightStr = conArray[1].substring(9, conArray[1].length());//获取蓝牙地址
+                Log.e("setOnItemClickListener","rightStr"+rightStr);
+                BluetoothDevice device = blueToothController.mAdapter.getRemoteDevice(rightStr);//根据地址找到相应的设备
+                try {
+                    if(device.getBondState()==BOND_NONE)//未配对的进行配对，否则取消配对
+                    {
+                        blueToothController.mAdapter.cancelDiscovery();//获取到设备状态后就取消搜索了
+                        deviceName.remove(con);
+                        device.createBond();
+                        con = "Name :" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State :已配对" + "\n";
+                        deviceName.add(con);
+                        adapter1.notifyDataSetChanged();
+                    }
+                    else
+                    {
+                        //Toast.makeText(getApplicationContext(), "test", Toast.LENGTH_SHORT).show();
+                        blueToothController.mAdapter.cancelDiscovery();//获取到设备状态后就取消搜索了
+                        Method method = BluetoothDevice.class.getMethod("removeBond");
+                        method.invoke(device);
+                        deviceName.remove(con);
+                        con = "Name :" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State :未配对" + "\n";
+                        deviceName.add(con);
+                        adapter1.notifyDataSetChanged();
+                    }
+                }catch (SecurityException e) {
+                    e.printStackTrace();
+                } catch (NoSuchMethodException e) {
+                    throw new RuntimeException(e);
+                } catch (InvocationTargetException e) {
+                    throw new RuntimeException(e);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
             }
         });
         //判断是否设备支持蓝牙
@@ -152,14 +193,14 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
-        public void findDevice(){
+        public boolean findDevice(){
             assert(mAdapter!=null);
-            Log.d("btController","finddevice findDevice");
             try{
-                    mAdapter.startDiscovery();
+                return mAdapter.startDiscovery();//需要打开定位
             }catch (SecurityException e) {
                 e.printStackTrace();
             }
+            return false;
         }
     }
     public void GetPermission()
@@ -239,15 +280,15 @@ public class MainActivity extends AppCompatActivity {
                 try{
                     if(device.getBondState()==BOND_NONE)
                     {
-                        s = "Name:" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State：未配对" + "\n";
+                        s = "Name :" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State :未配对" + "\n";
                     }
                     else if(device.getBondState()==BOND_BONDING)
                     {
-                        s = "Name:" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State：配对中" + "\n";
+                        s = "Name :" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State :配对中" + "\n";
                     }
                     else
                     {
-                        s = "Name:" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State：已配对" + "\n";
+                        s = "Name :" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State :已配对" + "\n";
                     }
                     if(!deviceName.contains(s))
                     {
@@ -263,7 +304,7 @@ public class MainActivity extends AppCompatActivity {
             else if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action))//搜索完成
             {
                 Toast.makeText(getApplicationContext(), "搜索完成", Toast.LENGTH_SHORT).show();
-                unregisterReceiver(this);
+                //unregisterReceiver(this);
             }else if(BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)){
                 Toast.makeText(getApplicationContext(), "开始搜索", Toast.LENGTH_SHORT).show();
             }
