@@ -12,11 +12,13 @@ import android.app.Activity;
 import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -29,11 +31,14 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.TimerTask;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
     BlueToothController blueToothController = new BlueToothController();
@@ -42,7 +47,12 @@ public class MainActivity extends AppCompatActivity {
     public ArrayList<String> arrayList = new ArrayList<>();
     public ArrayList<String> deviceName = new ArrayList<>();
     private IntentFilter foundFilter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-    public ArrayAdapter adapter1 ;
+    public ArrayAdapter adapter1;
+    Set<BluetoothDevice> deviceList = null;
+    BluetoothSocket bluetoothSocket = null;
+    UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -63,21 +73,22 @@ public class MainActivity extends AppCompatActivity {
         bt3.setOnClickListener(mcl);
         bt4.setOnClickListener(mcl);
 
+
         ListView listView = (ListView) findViewById(R.id.ListView0);
         //重写列表点击事件
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 CharSequence content = ((TextView) view).getText();
                 String con = content.toString();
-                Log.e("setOnItemClickListener","con:"+content.toString());
+                Log.e("setOnItemClickListener", "con:" + content.toString());
                 String[] conArray = con.split("\n");
-                Log.e("setOnItemClickListener","conArray[0]:"+conArray[0]+"conArray[1]"+conArray[1]+"conArray[2]"+conArray[2]);
+                Log.e("setOnItemClickListener", "conArray[0]:" + conArray[0] + "conArray[1]" + conArray[1] + "conArray[2]" + conArray[2]);
                 String rightStr = conArray[1].substring(9, conArray[1].length());//获取蓝牙地址
-                Log.e("setOnItemClickListener","rightStr"+rightStr);
+                Log.e("setOnItemClickListener", "rightStr" + rightStr);
                 BluetoothDevice device = blueToothController.mAdapter.getRemoteDevice(rightStr);//根据地址找到相应的设备
                 try {
-                    if(device.getBondState()==BOND_NONE)//未配对的进行配对，否则取消配对
+                    if (device.getBondState() == BOND_NONE)//未配对的进行配对，否则取消配对
                     {
                         blueToothController.mAdapter.cancelDiscovery();//获取到设备状态后就取消搜索了
                         deviceName.remove(con);
@@ -85,9 +96,7 @@ public class MainActivity extends AppCompatActivity {
                         con = "Name :" + device.getName() + "\n" + "Address :" + device.getAddress() + "\n" + "State :已配对" + "\n";
                         deviceName.add(con);
                         adapter1.notifyDataSetChanged();
-                    }
-                    else
-                    {
+                    } else {
                         //Toast.makeText(getApplicationContext(), "test", Toast.LENGTH_SHORT).show();
                         blueToothController.mAdapter.cancelDiscovery();//获取到设备状态后就取消搜索了
                         Method method = BluetoothDevice.class.getMethod("removeBond");
@@ -97,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
                         deviceName.add(con);
                         adapter1.notifyDataSetChanged();
                     }
-                }catch (SecurityException e) {
+                } catch (SecurityException e) {
                     e.printStackTrace();
                 } catch (NoSuchMethodException e) {
                     throw new RuntimeException(e);
@@ -109,36 +118,31 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         //判断是否设备支持蓝牙
-        if(!blueToothController.isSupportBlueTooth())
-        {
+        if (!blueToothController.isSupportBlueTooth()) {
             Toast.makeText(getApplicationContext(), "设备不支持蓝牙，3s后退出app", Toast.LENGTH_SHORT).show();
             Handler handler = new Handler();
-            handler.postDelayed(new Runnable()
-            {
+            handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     instance.finish();
                     System.exit(0);
                 }
-            },3000);
+            }, 3000);
         }
         //获取并检查手机蓝牙权限
         GetPermission();
-        if(!CheckPermision())
-        {
+        if (!CheckPermision()) {
             Toast.makeText(getApplicationContext(), "设备不支持蓝牙，5s后退出app", Toast.LENGTH_SHORT).show();
             Handler handler = new Handler();
-            handler.postDelayed(new Runnable()
-            {
+            handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     instance.finish();
                     System.exit(0);
                 }
-            },5000);
+            }, 5000);
         }
-        if (!blueToothController.getBlueToothStatus())
-        {
+        if (!blueToothController.getBlueToothStatus()) {
             blueToothController.turnOnBlueTooth(1);
         }
         adapter1 = new ArrayAdapter(instance, R.layout.bluetooth_list_item, deviceName);//数组适配器
@@ -148,16 +152,62 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(bluetoothReceiver, foundFilter);
         listView.setAdapter(adapter1);
     }
+
     //重写button点击事件
-    class MyClickListener implements View.OnClickListener{
+    class MyClickListener implements View.OnClickListener {
+
+
+        boolean isConnected = false;
+        TextView textView = (TextView)findViewById(R.id.TextView0);
         @Override
         public void onClick(View v) {
-            switch (v.getId())
-            {
+            switch (v.getId()) {
                 case R.id.button0:
                     arrayList.clear();
                     deviceName.clear();
                     blueToothController.findDevice();
+                    break;
+                case R.id.button1:
+                    if (ActivityCompat.checkSelfPermission(instance, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+                        Toast.makeText(getApplicationContext(), "无权限操作", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    deviceList = blueToothController.mAdapter.getBondedDevices();
+                    for (BluetoothDevice device : deviceList)
+                    {
+                        try {
+                            Method isConnectedMethod = BluetoothDevice.class.getDeclaredMethod("isConnected", (Class[]) null);
+                            isConnectedMethod.setAccessible(true);
+                            isConnected = (boolean) isConnectedMethod.invoke(device, (Object[]) null);
+                            if(isConnected)
+                            {
+                                bluetoothSocket = device.createRfcommSocketToServiceRecord(SPP_UUID);
+                                bluetoothSocket.connect();
+                                if(bluetoothSocket.isConnected())
+                                {
+                                    Toast.makeText(getApplicationContext(), "spp连接成功", Toast.LENGTH_SHORT).show();
+                                    textView.setBackgroundColor(Color.parseColor("#4CAF50"));
+                                }
+                                else
+                                {
+                                    Toast.makeText(getApplicationContext(), "spp连接失败", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        } catch (NoSuchMethodException e) {
+                            throw new RuntimeException(e);
+                        } catch (InvocationTargetException e) {
+                            throw new RuntimeException(e);
+                        } catch (IllegalAccessException | IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
                     break;
             }
         }
